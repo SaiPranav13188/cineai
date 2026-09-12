@@ -1,15 +1,11 @@
-import os
 import chromadb
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 
 chroma_client = chromadb.Client()
 collection_name = "movies_rag"
 
-# Calls Hugging Face's free API (0 MB local memory footprint)
-embedding_fn = HuggingFaceInferenceAPIEmbeddings(
-    api_key=os.getenv("HF_TOKEN"),
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
-)
+# Lightweight model that uses minimal RAM when paired with CPU-only torch
+embedding_fn = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 MOVIES_DATA = [
     {
@@ -69,10 +65,6 @@ def init_vector_db():
     return collection
 
 def query_similar_movies(user_query: str, max_distance: float = 1.25, top_k: int = 3):
-    """
-    Queries ChromaDB and filters out candidates with distance above `max_distance`.
-    Lower distance values indicate higher semantic similarity.
-    """
     collection = chroma_client.get_collection(name=collection_name)
     query_embedding = embedding_fn.embed_query(user_query)
     
@@ -88,14 +80,12 @@ def query_similar_movies(user_query: str, max_distance: float = 1.25, top_k: int
         distances = results["distances"][0]
         
         for item, dist in zip(metadatas, distances):
-            # Only include recommendations that meet the similarity threshold
             if dist <= max_distance:
                 recommendations.append(item)
             
     return recommendations
 
 def format_movies_context(recommendations: list) -> str:
-    """Formats retrieved movie matches into plain text context for the LLM."""
     if not recommendations:
         return "No movies found matching the user query."
 
