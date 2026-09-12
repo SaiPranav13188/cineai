@@ -21,12 +21,19 @@ if st.button("Get Recommendations"):
                     data = response.json()
                     st.success(data.get("reply", "Found matches:"))
                     
-                    # Display each recommended movie
+                    # Display each recommended movie safely
                     for movie in data.get("recommendations", []):
-                        st.subheader(f"{movie['title']} (Rating: ⭐{movie['rating']})")
-                        st.write(f"**Genre:** {movie['genre']}")
-                        st.write(f"**Price:** ₹{movie['price']}")
-                        st.write(f"**Description:** {movie['description']}")
+                        title = movie.get('title', 'Unknown Title')
+                        rating = movie.get('rating', 'N/A')
+                        genre = movie.get('genre', 'N/A')
+                        price = movie.get('price', 'N/A')
+                        # Check multiple possible key names for description
+                        description = movie.get('description', movie.get('plot', movie.get('summary', 'No description available.')))
+                        
+                        st.subheader(f"{title} (Rating: ⭐{rating})")
+                        st.write(f"**Genre:** {genre}")
+                        st.write(f"**Price:** ₹{price}")
+                        st.write(f"**Description:** {description}")
                         st.markdown("---")
                 else:
                     st.error(f"Server returned error code: {response.status_code}")
