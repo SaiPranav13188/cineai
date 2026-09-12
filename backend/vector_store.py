@@ -1,14 +1,14 @@
 import os
 import chromadb
-from langchain_openai import OpenAIEmbeddings
+from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
 
 chroma_client = chromadb.Client()
 collection_name = "movies_rag"
 
-# Uses API-based embeddings (0 MB local memory footprint)
-embedding_fn = OpenAIEmbeddings(
-    model="text-embedding-3-small",
-    openai_api_key=os.getenv("OPENAI_API_KEY")
+# Calls Hugging Face's free API (0 MB local memory footprint)
+embedding_fn = HuggingFaceInferenceAPIEmbeddings(
+    api_key=os.getenv("HF_TOKEN"),
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
 MOVIES_DATA = [
