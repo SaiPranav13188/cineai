@@ -1,10 +1,15 @@
+import os
 import chromadb
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_openai import OpenAIEmbeddings
 
 chroma_client = chromadb.Client()
 collection_name = "movies_rag"
 
-embedding_fn = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+# Uses API-based embeddings (0 MB local memory footprint)
+embedding_fn = OpenAIEmbeddings(
+    model="text-embedding-3-small",
+    openai_api_key=os.getenv("OPENAI_API_KEY")
+)
 
 MOVIES_DATA = [
     {
@@ -88,6 +93,7 @@ def query_similar_movies(user_query: str, max_distance: float = 1.25, top_k: int
                 recommendations.append(item)
             
     return recommendations
+
 def format_movies_context(recommendations: list) -> str:
     """Formats retrieved movie matches into plain text context for the LLM."""
     if not recommendations:
