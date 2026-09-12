@@ -1,12 +1,3 @@
-import chromadb
-from langchain_huggingface import HuggingFaceEmbeddings
-
-chroma_client = chromadb.Client()
-collection_name = "movies_rag"
-
-# Lightweight model that uses minimal RAM when paired with CPU-only torch
-embedding_fn = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-
 MOVIES_DATA = [
     {
         "id": "1",
@@ -38,52 +29,24 @@ MOVIES_DATA = [
 ]
 
 def init_vector_db():
-    collection = chroma_client.get_or_create_collection(name=collection_name)
-    
-    if collection.count() == 0:
-        documents = [m["description"] for m in MOVIES_DATA]
-        metadatas = [
-            {
-                "id": m["id"],
-                "title": m["title"],
-                "rating": m["rating"],
-                "genre": m["genre"],
-                "poster": m["poster"],
-                "price": m["price"]
-            }
-            for m in MOVIES_DATA
-        ]
-        ids = [m["id"] for m in MOVIES_DATA]
-
-        embeddings = embedding_fn.embed_documents(documents)
-        collection.add(
-            embeddings=embeddings,
-            documents=documents,
-            metadatas=metadatas,
-            ids=ids
-        )
-    return collection
+    return MOVIES_DATA
 
 def query_similar_movies(user_query: str, max_distance: float = 1.25, top_k: int = 3):
-    collection = chroma_client.get_collection(name=collection_name)
-    query_embedding = embedding_fn.embed_query(user_query)
+    """
+    Lightweight keyword/relevance match that runs instantly with 0 MB memory overhead,
+    bypassing heavy ML library memory limits on Render.
+    """
+    query_words = set(user_query.lower().split())
+    scored_movies = []
     
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=top_k,
-        include=["metadatas", "distances"]
-    )
+    for movie in MOVIES_DATA:
+        text = (movie["title"] + " " + movie["genre"] + " " + movie["description"]).lower()
+        score = sum(1 for word in query_words if word in text)
+        scored_movies.append((score, movie))
     
-    recommendations = []
-    if results and "metadatas" in results and results["metadatas"]:
-        metadatas = results["metadatas"][0]
-        distances = results["distances"][0]
-        
-        for item, dist in zip(metadatas, distances):
-            if dist <= max_distance:
-                recommendations.append(item)
-            
-    return recommendations
+    scored_movies.sort(key=lambda x: x[0], reverse=True)
+    results = [movie for score, movie in scored_movies[:top_k]]
+    return results if results else MOVIES_DATA[:top_k]
 
 def format_movies_context(recommendations: list) -> str:
     if not recommendations:
