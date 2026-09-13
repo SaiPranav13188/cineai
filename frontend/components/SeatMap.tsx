@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 interface Seat {
@@ -16,18 +16,20 @@ interface SeatMapProps {
   basePrice?: number;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
 export default function SeatMap({ showId, basePrice = 250 }: SeatMapProps) {
   const router = useRouter();
 
-  const [seats] = useState<Seat[]>([
+  const [seats, setSeats] = useState<Seat[]>([
     { id: "A1", row: "A", number: 1, status: "available", price: basePrice },
     { id: "A2", row: "A", number: 2, status: "available", price: basePrice },
-    { id: "A3", row: "A", number: 3, status: "booked", price: basePrice },
+    { id: "A3", row: "A", number: 3, status: "available", price: basePrice },
     { id: "A4", row: "A", number: 4, status: "available", price: basePrice },
     { id: "A5", row: "A", number: 5, status: "available", price: basePrice },
     { id: "B1", row: "B", number: 1, status: "available", price: basePrice },
-    { id: "B2", row: "B", number: 2, status: "booked", price: basePrice },
-    { id: "B3", row: "B", number: 3, status: "booked", price: basePrice },
+    { id: "B2", row: "B", number: 2, status: "available", price: basePrice },
+    { id: "B3", row: "B", number: 3, status: "available", price: basePrice },
     { id: "B4", row: "B", number: 4, status: "available", price: basePrice },
     { id: "B5", row: "B", number: 5, status: "available", price: basePrice },
     { id: "C1", row: "C", number: 1, status: "available", price: basePrice + 100 },
@@ -38,6 +40,27 @@ export default function SeatMap({ showId, basePrice = 250 }: SeatMapProps) {
   ]);
 
   const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
+
+  // Fetch live booked seats from the backend when the component loads
+  useEffect(() => {
+    async function fetchBookedSeats() {
+      try {
+        const response = await fetch(`${API_URL}/api/seats/${showId}`);
+        const data = await response.json();
+        if (data.booked_seats) {
+          setSeats((prevSeats) =>
+            prevSeats.map((seat) => ({
+              ...seat,
+              status: data.booked_seats.includes(seat.id) ? "booked" : "available",
+            }))
+          );
+        }
+      } catch (error) {
+        console.error("Failed to fetch booked seats:", error);
+      }
+    }
+    fetchBookedSeats();
+  }, [showId]);
 
   const toggleSeatSelection = (seat: Seat) => {
     if (seat.status === "booked") return;
