@@ -6,11 +6,11 @@ from vector_store import init_vector_db, query_similar_movies
 
 app = FastAPI(title="CineAI API")
 
-# Configure CORS middleware to accept requests from Next.js frontend
+# Updated CORS middleware to allow requests from your live Vercel frontend and local development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_credentials=True,
+    allow_origins=["*"],  # Allows requests from Vercel and any other frontend origin
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
