@@ -39,8 +39,9 @@ export default function AIAssistantPage() {
     setIsTyping(true);
 
     try {
-      // Send real-time request to running FastAPI endpoint
-      const res = await fetch("http://localhost:8000/api/v1/recommend", {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://cineai-backend-1zxp.onrender.com";
+      
+      const res = await fetch(`${API_URL}/api/v1/recommend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_query: currentInput }),
@@ -66,7 +67,7 @@ export default function AIAssistantPage() {
         {
           id: Date.now().toString(),
           sender: "ai",
-          text: "Error connecting to the backend server. Please make sure FastAPI is running on port 8000.",
+          text: "Error connecting to the backend server. Please make sure the backend URL is properly configured.",
         },
       ]);
     } finally {
