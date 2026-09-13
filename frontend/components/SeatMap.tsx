@@ -41,9 +41,10 @@ export default function SeatMap({ showId, basePrice = 250 }: SeatMapProps) {
 
   const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
 
-  // Fetch live booked seats from the backend when the component loads
+  // Fetch live booked seats from the backend for this specific movie/show ID
   useEffect(() => {
     async function fetchBookedSeats() {
+      if (!showId) return;
       try {
         const response = await fetch(`${API_URL}/api/seats/${showId}`);
         const data = await response.json();
