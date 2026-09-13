@@ -16,7 +16,7 @@ interface SeatMapProps {
   basePrice?: number;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://cineai-backend-1zxp.onrender.com";
 
 export default function SeatMap({ showId, basePrice = 250 }: SeatMapProps) {
   const router = useRouter();
