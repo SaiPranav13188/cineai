@@ -130,24 +130,28 @@ export default function Home() {
           {filteredMovies.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
               {filteredMovies.map((movie) => (
-                <div key={movie.id} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden flex flex-col h-full cursor-default">
+                <Link 
+                  key={movie.id} 
+                  href={`/movie/${movie.id}`}
+                  className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden flex flex-col h-full hover:border-purple-500/50 transition-all cursor-pointer group"
+                >
                   {/* Movie Poster */}
-                  <div className="relative w-full h-48 bg-zinc-800">
+                  <div className="relative w-full h-48 bg-zinc-800 overflow-hidden">
                     <Image
                       src={movie.poster}
                       alt={movie.title}
                       fill
-                      className="object-cover"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                   <div className="p-3 flex flex-col justify-between flex-1 gap-1">
-                    <h3 className="font-bold text-xs truncate text-zinc-100">{movie.title}</h3>
+                    <h3 className="font-bold text-xs truncate text-zinc-100 group-hover:text-purple-400 transition-colors">{movie.title}</h3>
                     <div className="flex justify-between items-center text-[11px] text-zinc-400 mt-1">
                       <span className="truncate">{movie.genre}</span>
                       <span className="text-amber-400 font-semibold flex-shrink-0">⭐ {movie.rating}</span>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
 
               {!searchQuery && (
