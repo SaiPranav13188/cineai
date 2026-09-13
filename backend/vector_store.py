@@ -33,8 +33,9 @@ def init_vector_db():
 
 def query_similar_movies(user_query: str, max_distance: float = 1.25, top_k: int = 3):
     """
-    Lightweight keyword/relevance match that runs instantly with 0 MB memory overhead,
-    bypassing heavy ML library memory limits on Render.
+    Keyword match function that requires a minimum score match. 
+    If a query like 'comedy' has zero overlapping keywords with any movie, 
+    it returns an empty list so the app correctly triggers the 'no movies found' message.
     """
     query_words = set(user_query.lower().split())
     scored_movies = []
@@ -42,11 +43,13 @@ def query_similar_movies(user_query: str, max_distance: float = 1.25, top_k: int
     for movie in MOVIES_DATA:
         text = (movie["title"] + " " + movie["genre"] + " " + movie["description"]).lower()
         score = sum(1 for word in query_words if word in text)
-        scored_movies.append((score, movie))
+        if score > 0:  # Only keep movies that actually match at least one keyword
+            scored_movies.append((score, movie))
     
     scored_movies.sort(key=lambda x: x[0], reverse=True)
+    # Return only movies that achieved a valid keyword match, otherwise return empty list
     results = [movie for score, movie in scored_movies[:top_k]]
-    return results if results else MOVIES_DATA[:top_k]
+    return results
 
 def format_movies_context(recommendations: list) -> str:
     if not recommendations:
