@@ -1,7 +1,6 @@
-
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
@@ -50,10 +49,9 @@ const MOVIES_CATALOG: Record<string, MovieDetail> = {
   },
 };
 
-// Fixed occupied seats matrix simulation
-const OCCUPIED_SEATS = ["A3", "A4", "B2", "B5", "C4", "C5", "D1", "D2"];
 const SEAT_ROWS = ["A", "B", "C", "D", "E"];
 const SEATS_PER_ROW = 6;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://cineai-backend-1zxp.onrender.com";
 
 export default function MovieDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -62,9 +60,27 @@ export default function MovieDetailsPage({ params }: { params: Promise<{ id: str
 
   const [selectedShowtime, setSelectedShowtime] = useState<string>("");
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+  const [occupiedSeats, setOccupiedSeats] = useState<string[]>([]);
   const [step, setStep] = useState<"details" | "seats" | "payment" | "ticket">("details");
   const [isProcessing, setIsProcessing] = useState(false);
   const [ticketId, setTicketId] = useState("");
+
+  // Fetch live occupied seats from FastAPI backend on load
+  useEffect(() => {
+    async function fetchBookedSeats() {
+      if (!movieId) return;
+      try {
+        const response = await fetch(`${API_URL}/api/seats/${movieId}`);
+        const data = await response.json();
+        if (data.booked_seats) {
+          setOccupiedSeats(data.booked_seats);
+        }
+      } catch (error) {
+        console.error("Failed to fetch booked seats from backend:", error);
+      }
+    }
+    fetchBookedSeats();
+  }, [movieId]);
 
   if (!movie) {
     return (
@@ -79,19 +95,46 @@ export default function MovieDetailsPage({ params }: { params: Promise<{ id: str
   }
 
   const toggleSeat = (seatId: string) => {
-    if (OCCUPIED_SEATS.includes(seatId)) return;
+    if (occupiedSeats.includes(seatId)) return;
     setSelectedSeats((prev) =>
       prev.includes(seatId) ? prev.filter((s) => s !== seatId) : [...prev, seatId]
     );
   };
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
+    if (selectedSeats.length === 0) return;
     setIsProcessing(true);
-    setTimeout(() => {
-      setTicketId(`CINE-${Math.floor(100000 + Math.random() * 900000)}`);
+
+    try {
+      // Send selected seats to Render backend for permanent storage in booked_seats.json
+      const response = await fetch(`${API_URL}/api/book`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          movie_id: movieId,
+          seats: selectedSeats,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setTicketId(`CINE-${Math.floor(100000 + Math.random() * 900000)}`);
+        setStep("ticket");
+      } else {
+        alert(data.detail || "Booking failed on server. Some seats might already be taken.");
+        // Refresh occupied seats state to reflect latest server reality
+        if (data.booked_seats) {
+          setOccupiedSeats(data.booked_seats);
+        }
+        setStep("seats");
+      }
+    } catch (error) {
+      console.error("Network error during checkout:", error);
+      alert("Could not connect to backend server.");
+    } finally {
       setIsProcessing(false);
-      setStep("ticket");
-    }, 1500);
+    }
   };
 
   const totalPrice = selectedSeats.length * movie.price;
@@ -178,7 +221,7 @@ export default function MovieDetailsPage({ params }: { params: Promise<{ id: str
                   <span className="w-4 text-xs font-mono text-zinc-500">{row}</span>
                   {Array.from({ length: SEATS_PER_ROW }).map((_, i) => {
                     const seatId = `${row}${i + 1}`;
-                    const isOccupied = OCCUPIED_SEATS.includes(seatId);
+                    const isOccupied = occupiedSeats.includes(seatId);
                     const isSelected = selectedSeats.includes(seatId);
 
                     return (
@@ -261,7 +304,7 @@ export default function MovieDetailsPage({ params }: { params: Promise<{ id: str
               disabled={isProcessing}
               className="w-full py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-zinc-800 text-white font-semibold rounded-xl transition-all cursor-pointer flex justify-center items-center"
             >
-              {isProcessing ? "Processing Payment..." : `Pay ₹${totalPrice}`}
+              {isProcessing ? "Saving Booking..." : `Pay ₹${totalPrice}`}
             </button>
           </div>
         )}
