@@ -129,12 +129,12 @@ export default async function TheatreDetailPage({
                   </div>
                 </div>
 
-                {/* Showtimes */}
+                {/* Showtimes - Updated to route to dynamic movie page with showtime parameters */}
                 <div className="flex flex-wrap gap-3 w-full md:w-auto">
                   {show.times.map((time, idx) => (
                     <Link
                       key={idx}
-                      href={`/booking/${show.showId}?price=${show.price}`}
+                      href={`/movie/${show.showId}?time=${encodeURIComponent(time)}&price=${show.price}`}
                       className="px-4 py-2 bg-zinc-950 border border-zinc-800 hover:border-purple-500 hover:bg-purple-600/10 text-purple-400 text-sm font-semibold rounded-xl transition-all"
                     >
                       {time}
