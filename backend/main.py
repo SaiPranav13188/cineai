@@ -57,6 +57,7 @@ class RecommendationResponse(BaseModel):
 
 class BookingRequest(BaseModel):
     movie_id: str
+    showtime: str
     seats: List[str]
 
 @app.get("/")
@@ -64,24 +65,30 @@ def root():
     return {"message": "CineAI Vector Search RAG Backend Online"}
 
 @app.get("/api/seats/{movie_id}")
-def get_booked_seats(movie_id: str):
+def get_booked_seats(movie_id: str, showtime: str):
     # Always reload fresh from disk to catch any independent updates
     global booked_seats_db
     booked_seats_db = load_booked_seats()
-    return {"booked_seats": booked_seats_db.get(str(movie_id), [])}
+    
+    key = f"{movie_id}_{showtime}"
+    return {"booked_seats": booked_seats_db.get(key, [])}
 
 @app.post("/api/book")
 def book_seats(booking: BookingRequest):
     global booked_seats_db
     booked_seats_db = load_booked_seats()
     
-    movie_id_str = str(booking.movie_id)
-    current_booked = booked_seats_db.setdefault(movie_id_str, [])
+    key = f"{booking.movie_id}_{booking.showtime}"
+    current_booked = booked_seats_db.setdefault(key, [])
     
-    # Prevent double-booking race conditions across any movie/show
+    # Prevent double-booking race conditions for this specific movie showtime
     for seat in booking.seats:
         if seat in current_booked:
-            raise HTTPException(status_code=400, detail=f"Seat {seat} is already occupied.")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Seat {seat} is already occupied for this showtime.",
+                headers={"X-Booked-Seats": json.dumps(current_booked)}
+            )
     
     current_booked.extend(booking.seats)
     save_booked_seats(booked_seats_db)  # Persist changes to disk immediately
