@@ -65,12 +65,13 @@ export default function MovieDetailsPage({ params }: { params: Promise<{ id: str
   const [isProcessing, setIsProcessing] = useState(false);
   const [ticketId, setTicketId] = useState("");
 
-  // Fetch live occupied seats from FastAPI backend on load
+  // Fetch live occupied seats filtered by both movie ID and showtime
   useEffect(() => {
     async function fetchBookedSeats() {
-      if (!movieId) return;
+      if (!movieId || !selectedShowtime) return;
       try {
-        const response = await fetch(`${API_URL}/api/seats/${movieId}`);
+        const encodedShowtime = encodeURIComponent(selectedShowtime);
+        const response = await fetch(`${API_URL}/api/seats/${movieId}?showtime=${encodedShowtime}`);
         const data = await response.json();
         if (data.booked_seats) {
           setOccupiedSeats(data.booked_seats);
@@ -79,8 +80,10 @@ export default function MovieDetailsPage({ params }: { params: Promise<{ id: str
         console.error("Failed to fetch booked seats from backend:", error);
       }
     }
-    fetchBookedSeats();
-  }, [movieId]);
+    if (step === "seats") {
+      fetchBookedSeats();
+    }
+  }, [movieId, selectedShowtime, step]);
 
   if (!movie) {
     return (
@@ -106,12 +109,12 @@ export default function MovieDetailsPage({ params }: { params: Promise<{ id: str
     setIsProcessing(true);
 
     try {
-      // Send selected seats to Render backend for permanent storage in booked_seats.json
       const response = await fetch(`${API_URL}/api/book`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           movie_id: movieId,
+          showtime: selectedShowtime,
           seats: selectedSeats,
         }),
       });
@@ -123,7 +126,6 @@ export default function MovieDetailsPage({ params }: { params: Promise<{ id: str
         setStep("ticket");
       } else {
         alert(data.detail || "Booking failed on server. Some seats might already be taken.");
-        // Refresh occupied seats state to reflect latest server reality
         if (data.booked_seats) {
           setOccupiedSeats(data.booked_seats);
         }
@@ -187,7 +189,10 @@ export default function MovieDetailsPage({ params }: { params: Promise<{ id: str
 
               <button
                 disabled={!selectedShowtime}
-                onClick={() => setStep("seats")}
+                onClick={() => {
+                  setSelectedSeats([]);
+                  setStep("seats");
+                }}
                 className="w-full py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white text-sm font-semibold rounded-xl transition-all cursor-pointer"
               >
                 {selectedShowtime ? "Select Seats →" : "Select a Showtime"}
@@ -323,7 +328,7 @@ export default function MovieDetailsPage({ params }: { params: Promise<{ id: str
                 value={JSON.stringify({
                   ticketId,
                   movie: movie.title,
-                  time: selectedShowtime,
+                  showtime: selectedShowtime,
                   seats: selectedSeats,
                   price: totalPrice,
                 })}
