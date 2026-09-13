@@ -32,6 +32,7 @@ const NOW_SHOWING_MOVIES: Movie[] = [
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Filter movies based on title or genre matching search input
   const filteredMovies = NOW_SHOWING_MOVIES.filter(
@@ -43,17 +44,17 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-50 font-sans pb-16">
       {/* Navigation Header */}
-      <nav className="flex items-center justify-between p-6 border-b border-zinc-800 max-w-7xl mx-auto gap-4">
-        <div className="flex items-center gap-6 flex-1 max-w-xl">
-          <Link href="/" className="flex items-center gap-3 flex-shrink-0">
+      <nav className="relative flex items-center justify-between p-4 md:p-6 border-b border-zinc-800 max-w-7xl mx-auto gap-2 md:gap-4">
+        <div className="flex items-center gap-3 md:gap-6 flex-1 max-w-xl">
+          <Link href="/" className="flex items-center gap-2 md:gap-3 flex-shrink-0">
             <Image 
               src="/icons/icon1.svg" 
               alt="CineAI Logo" 
-              width={36} 
-              height={36} 
+              width={32} 
+              height={32} 
               className="invert"
             />
-            <span className="text-2xl font-bold tracking-tight">CineAI</span>
+            <span className="text-xl md:text-2xl font-bold tracking-tight">CineAI</span>
           </Link>
 
           {/* Functional Search Bar */}
@@ -62,8 +63,8 @@ export default function Home() {
               type="text" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="🔍 Search movies, events..." 
-              className="w-full px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500 text-xs"
+              placeholder="🔍 Search movies..." 
+              className="w-full px-3 py-1.5 md:px-4 md:py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500 text-xs"
             />
             {searchQuery && (
               <button
@@ -76,14 +77,34 @@ export default function Home() {
           </div>
         </div>
         
-        {/* Nav Links */}
-        <div className="flex items-center gap-8 font-medium text-zinc-300 text-sm">
+        {/* Desktop Nav Links (Hidden on Mobile) */}
+        <div className="hidden md:flex items-center gap-8 font-medium text-zinc-300 text-sm">
           <Link href="/movies" className="hover:text-white transition-colors">Movies</Link>
           <Link href="/events" className="hover:text-white transition-colors">Events</Link>
           <Link href="/theatres" className="hover:text-white transition-colors">Theatres</Link>
           <Link href="/ai-assistant" className="hover:text-white transition-colors text-purple-400 font-semibold">AI Assistant</Link>
           <Link href="/login" className="px-4 py-2 rounded-lg bg-zinc-100 text-zinc-900 font-semibold hover:bg-zinc-200 transition-colors">Login</Link>
         </div>
+
+        {/* Mobile Hamburger Button (Only visible on Mobile) */}
+        <button 
+          onClick={() => setIsMenuOpen(!isMenuOpen)} 
+          className="md:hidden text-zinc-50 focus:outline-none p-2 text-2xl flex-shrink-0"
+          aria-label="Toggle Menu"
+        >
+          {isMenuOpen ? "✕" : "☰"}
+        </button>
+
+        {/* Mobile Dropdown Menu Drawer */}
+        {isMenuOpen && (
+          <div className="md:hidden absolute top-full left-0 w-full bg-zinc-900 border-b border-zinc-800 py-4 px-6 flex flex-col space-y-4 shadow-xl z-50">
+            <Link href="/movies" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium hover:text-purple-400">Movies</Link>
+            <Link href="/events" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium hover:text-purple-400">Events</Link>
+            <Link href="/theatres" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium hover:text-purple-400">Theatres</Link>
+            <Link href="/ai-assistant" onClick={() => setIsMenuOpen(false)} className="text-sm font-medium text-purple-400 font-semibold">AI Assistant</Link>
+            <Link href="/login" onClick={() => setIsMenuOpen(false)} className="px-4 py-2 rounded-lg bg-zinc-100 text-zinc-900 font-semibold text-center hover:bg-zinc-200 transition-colors">Login</Link>
+          </div>
+        )}
       </nav>
 
       <div className="max-w-7xl mx-auto px-6 space-y-12 mt-8">
