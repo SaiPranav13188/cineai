@@ -20,6 +20,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://cineai-backend-1zxp.
 
 export default function SeatMap({ showId, basePrice = 250 }: SeatMapProps) {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   const [seats, setSeats] = useState<Seat[]>([
     { id: "A1", row: "A", number: 1, status: "available", price: basePrice },
@@ -41,7 +42,7 @@ export default function SeatMap({ showId, basePrice = 250 }: SeatMapProps) {
 
   const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
 
-  // Fetch live booked seats from the backend for this specific movie/show ID
+  // Fetch live booked seats from the backend on load
   useEffect(() => {
     async function fetchBookedSeats() {
       if (!showId) return;
@@ -79,10 +80,35 @@ export default function SeatMap({ showId, basePrice = 250 }: SeatMapProps) {
     }, 0);
   };
 
-  const handleProceedToPayment = () => {
-    const total = calculateTotal();
-    const seatsQuery = selectedSeatIds.join(",");
-    router.push(`/checkout?showId=${showId}&seats=${seatsQuery}&total=${total}`);
+  // Directly save booking to backend database when payment/confirmation is clicked
+  const handleProceedToPayment = async () => {
+    if (!showId || selectedSeatIds.length === 0) return;
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${API_URL}/api/book`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          movie_id: showId,
+          seats: selectedSeatIds,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("Booking confirmed and saved!");
+        router.push("/"); // Return home after saving
+      } else {
+        alert(data.detail || "Booking failed.");
+      }
+    } catch (err) {
+      console.error("Network error while booking:", err);
+      alert("Could not connect to backend server.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const rows = Array.from(new Set(seats.map((s) => s.row)));
@@ -146,11 +172,11 @@ export default function SeatMap({ showId, basePrice = 250 }: SeatMapProps) {
           <p className="text-2xl font-bold text-purple-400">₹{calculateTotal()}</p>
         </div>
         <button
-          disabled={selectedSeatIds.length === 0}
+          disabled={selectedSeatIds.length === 0 || loading}
           onClick={handleProceedToPayment}
           className="w-full sm:w-auto px-8 py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white font-semibold rounded-xl transition-all cursor-pointer"
         >
-          Proceed to Payment
+          {loading ? "Saving Booking..." : "Proceed to Payment"}
         </button>
       </div>
     </div>
