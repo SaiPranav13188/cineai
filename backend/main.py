@@ -30,7 +30,7 @@ def load_booked_seats() -> Dict[str, List[str]]:
 
 def save_booked_seats(data: Dict[str, List[str]]):
     with open(DB_FILE, "w") as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=4)
 
 # Persistent store backed by a local JSON file to survive server restarts/spin-downs
 booked_seats_db: Dict[str, List[str]] = load_booked_seats()
@@ -65,13 +65,20 @@ def root():
 
 @app.get("/api/seats/{movie_id}")
 def get_booked_seats(movie_id: str):
-    return {"booked_seats": booked_seats_db.get(movie_id, [])}
+    # Always reload fresh from disk to catch any independent updates
+    global booked_seats_db
+    booked_seats_db = load_booked_seats()
+    return {"booked_seats": booked_seats_db.get(str(movie_id), [])}
 
 @app.post("/api/book")
 def book_seats(booking: BookingRequest):
-    current_booked = booked_seats_db.setdefault(booking.movie_id, [])
+    global booked_seats_db
+    booked_seats_db = load_booked_seats()
     
-    # Prevent double-booking race conditions
+    movie_id_str = str(booking.movie_id)
+    current_booked = booked_seats_db.setdefault(movie_id_str, [])
+    
+    # Prevent double-booking race conditions across any movie/show
     for seat in booking.seats:
         if seat in current_booked:
             raise HTTPException(status_code=400, detail=f"Seat {seat} is already occupied.")
